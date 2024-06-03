@@ -10,10 +10,12 @@ import { getWindowAiChatResponseStream } from './windowAiChat';
 import { getOllamaChatResponseStream, getOllamaVisionChatResponse } from './ollamaChat';
 import { getKoboldAiChatResponseStream } from './koboldAiChat';
 
+import { piper} from "@/features/piper/piper";
 import { elevenlabs } from "@/features/elevenlabs/elevenlabs";
 import { coqui } from "@/features/coqui/coqui";
 import { speecht5 } from "@/features/speecht5/speecht5";
 import { openaiTTS } from "@/features/openaiTTS/openaiTTS";
+import { localXTTSTTS} from "@/features/localXTTS/localXTTS";
 import { config } from "@/utils/config";
 import { cleanTalk } from "@/utils/cleanTalk";
 import { processResponse } from "@/utils/processResponse";
@@ -60,6 +62,8 @@ export class Chat {
   private currentAssistantMessage: string;
   private currentUserMessage: string;
 
+  private lastAwake: number;
+
   private messageList: Message[];
 
   private currentStreamIdx: number;
@@ -80,6 +84,8 @@ export class Chat {
 
     this.messageList = [];
     this.currentStreamIdx = 0;
+
+    this.lastAwake = 0;
   }
 
   public initialize(
@@ -103,6 +109,7 @@ export class Chat {
     this.processTtsJobs();
     this.processSpeakJobs();
 
+    this.updateAwake();
     this.initialized = true;
   }
 
@@ -114,6 +121,16 @@ export class Chat {
     this.setAssistantMessage!(this.currentAssistantMessage);
     this.setUserMessage!(this.currentAssistantMessage);
     this.currentStreamIdx++;
+  }
+
+  public isAwake() {
+    let sinceLastAwakeSec = ((new Date()).getTime() - this.lastAwake) / 1000;
+    let timeBeforeIdleSec = parseInt(config("wake_word_time_before_idle_sec"));
+    return sinceLastAwakeSec  < timeBeforeIdleSec;
+  }
+
+  public updateAwake() {
+    this.lastAwake = (new Date()).getTime();
   }
 
   public async processTtsJobs() {
@@ -168,6 +185,7 @@ export class Chat {
         this.bubbleMessage('assistant', speak.screenplay.talk.message);
         if (speak.audioBuffer) {
           await this.viewer!.model?.speak(speak.audioBuffer, speak.screenplay);
+          this.updateAwake();
         }
       } while (this.speakJobs.size() > 0);
       await wait(50);
@@ -251,6 +269,9 @@ export class Chat {
     if (message === null || message === "") {
       return;
     }
+    if (config("wake_word_enabled")) {
+      this.updateAwake();
+    }
 
     console.time('performance_interrupting');
     console.debug('interrupting...');
@@ -310,6 +331,7 @@ export class Chat {
 
     let aiTextLog = "";
     let tag = "";
+    let rolePlay = "";
     let receivedMessage = "";
 
     let firstTokenEncountered = false;
@@ -338,6 +360,7 @@ export class Chat {
           aiTextLog,
           receivedMessage,
           tag,
+          rolePlay,
           callback: (aiTalks: Screenplay[]): boolean => {
             // Generate & play audio for each sentence, display responses
             console.debug('enqueue tts', aiTalks);
@@ -364,6 +387,7 @@ export class Chat {
         aiTextLog = proc.aiTextLog;
         receivedMessage = proc.receivedMessage;
         tag = proc.tag;
+        rolePlay = proc.rolePlay;
         if (proc.shouldBreak) {
           break;
         }
@@ -417,6 +441,13 @@ export class Chat {
         }
         case 'openai_tts': {
           const voice = await openaiTTS(talk.message);
+          return voice.audio;
+        }
+        case 'localXTTS': {
+          const voice = await localXTTSTTS(talk.message);
+        }
+        case 'piper': {
+          const voice = await piper(talk.message);
           return voice.audio;
         }
       }

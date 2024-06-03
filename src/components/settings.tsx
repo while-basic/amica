@@ -17,7 +17,6 @@ import {
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
-import { IconButton } from "@/components/iconButton";
 import { TextButton } from "@/components/textButton";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { config, updateConfig } from "@/utils/config";
@@ -47,7 +46,11 @@ import { SpeechT5SettingsPage } from './settings/SpeechT5SettingsPage';
 import { CoquiSettingsPage } from './settings/CoquiSettingsPage';
 import { OpenAITTSSettingsPage } from './settings/OpenAITTSSettingsPage';
 
+import { PiperSettingsPage } from './settings/PiperSettingsPage';
+
 import { STTBackendPage } from './settings/STTBackendPage';
+import { STTWakeWordSettingsPage } from './settings/STTWakeWordSettingsPage';
+
 import { WhisperOpenAISettingsPage } from './settings/WhisperOpenAISettingsPage';
 import { WhisperCppSettingsPage } from './settings/WhisperCppSettingsPage';
 
@@ -58,6 +61,7 @@ import { VisionSystemPromptPage } from './settings/VisionSystemPromptPage';
 
 import { NamePage } from './settings/NamePage';
 import { SystemPromptPage } from './settings/SystemPromptPage';
+import { useVrmStoreContext } from "@/features/vrmStore/vrmStoreContext";
 
 export const Settings = ({
   onClickClose,
@@ -65,6 +69,7 @@ export const Settings = ({
   onClickClose: () => void;
 }) => {
   const { viewer } = useContext(ViewerContext);
+  const { vrmList, vrmListAddFile } = useVrmStoreContext();
   useKeyboardShortcut("Escape", onClickClose);
 
   const [page, setPage] = useState('main_menu');
@@ -77,10 +82,12 @@ export const Settings = ({
   const [openAIUrl, setOpenAIUrl] = useState(config("openai_url"));
   const [openAIModel, setOpenAIModel] = useState(config("openai_model"));
   const [llamaCppUrl, setLlamaCppUrl] = useState(config("llamacpp_url"));
+  const [llamaCppStopSequence, setLlamaCppStopSequence] = useState(config("llamacpp_stop_sequence"));
   const [ollamaUrl, setOllamaUrl] = useState(config("ollama_url"));
   const [ollamaModel, setOllamaModel] = useState(config("ollama_model"));
   const [koboldAiUrl, setKoboldAiUrl] = useState(config("koboldai_url"));
   const [koboldAiUseExtra, setKoboldAiUseExtra] = useState<boolean>(config("koboldai_use_extra") === 'true' ? true : false);
+  const [koboldAiStopSequence, setKoboldAiStopSequence] = useState(config("koboldai_stop_sequence"));
 
   const [ttsBackend, setTTSBackend] = useState(config("tts_backend"));
   const [elevenlabsApiKey, setElevenlabsApiKey] = useState(config("elevenlabs_apikey"));
@@ -96,6 +103,8 @@ export const Settings = ({
   const [openAITTSModel, setOpenAITTSModel] = useState(config("openai_tts_model"));
   const [openAITTSVoice, setOpenAITTSVoice] = useState(config("openai_tts_voice"));
 
+  const [piperUrl, setPiperUrl] = useState(config("piper_url"));
+
   const [visionBackend, setVisionBackend] = useState(config("vision_backend"));
   const [visionLlamaCppUrl, setVisionLlamaCppUrl] = useState(config("vision_llamacpp_url"));
   const [visionOllamaUrl, setVisionOllamaUrl] = useState(config("vision_ollama_url"));
@@ -105,10 +114,16 @@ export const Settings = ({
   const [bgUrl, setBgUrl] = useState(config("bg_url"));
   const [bgColor, setBgColor] = useState(config("bg_color"));
   const [vrmUrl, setVrmUrl] = useState(config("vrm_url"));
+  const [vrmHash, setVrmHash] = useState(config("vrm_hash"));
+  const [vrmSaveType, setVrmSaveType] = useState(config('vrm_save_type'));
   const [youtubeVideoID, setYoutubeVideoID] = useState(config("youtube_videoid"));
   const [animationUrl, setAnimationUrl] = useState(config("animation_url"));
 
   const [sttBackend, setSTTBackend] = useState(config("stt_backend"));
+  const [sttWakeWordEnabled, setSTTWakeWordEnabled] = useState<boolean>(config("wake_word_enabled") === 'true' ? true : false);
+  const [sttWakeWord, setSTTWakeWord] = useState(config("wake_word"));
+  const [sttWakeWordIdleTime, setSTTWakeWordIdleTime] = useState<number>(parseInt(config("wake_word_time_before_idle_sec")));
+  
   const [whisperOpenAIUrl, setWhisperOpenAIUrl] = useState(config("openai_whisper_url"));
   const [whisperOpenAIApiKey, setWhisperOpenAIApiKey] = useState(config("openai_whisper_apikey"));
   const [whisperOpenAIModel, setWhisperOpenAIModel] = useState(config("openai_whisper_model"));
@@ -116,7 +131,6 @@ export const Settings = ({
 
   const [name, setName] = useState(config("name"));
   const [systemPrompt, setSystemPrompt] = useState(config("system_prompt"));
-
 
   const vrmFileInputRef = useRef<HTMLInputElement>(null);
   const handleClickOpenVrmFile = useCallback(() => {
@@ -139,9 +153,7 @@ export const Settings = ({
       const file_type = file.name.split(".").pop();
 
       if (file_type === "vrm") {
-        const blob = new Blob([file], { type: "application/octet-stream" });
-        const url = window.URL.createObjectURL(blob);
-        viewer.loadVrm(url);
+        vrmListAddFile(file, viewer);
       }
 
       event.target.value = "";
@@ -196,25 +208,27 @@ export const Settings = ({
   }, [
     chatbotBackend,
     openAIApiKey, openAIUrl, openAIModel,
-    llamaCppUrl,
+    llamaCppUrl, llamaCppStopSequence,
     ollamaUrl, ollamaModel,
-    koboldAiUrl, koboldAiUseExtra,
+    koboldAiUrl, koboldAiUseExtra, koboldAiStopSequence,
     ttsBackend,
     elevenlabsApiKey, elevenlabsVoiceId,
     speechT5SpeakerEmbeddingsUrl,
     coquiApiKey, coquiVoiceId,
     openAITTSApiKey, openAITTSUrl, openAITTSModel, openAITTSVoice,
+    piperUrl,
     visionBackend,
     visionLlamaCppUrl,
     visionOllamaUrl, visionOllamaModel,
     visionSystemPrompt,
     bgColor,
-    bgUrl, vrmUrl, youtubeVideoID, animationUrl,
+    bgUrl, vrmHash, vrmUrl, youtubeVideoID, animationUrl,
     sttBackend,
     whisperOpenAIApiKey, whisperOpenAIModel, whisperOpenAIUrl,
     whisperCppUrl,
     name,
     systemPrompt,
+    sttWakeWordEnabled, sttWakeWord, sttWakeWordIdleTime
   ]);
 
 
@@ -242,12 +256,12 @@ export const Settings = ({
 
     case 'tts':
       return <MenuPage
-        keys={["tts_backend", "elevenlabs_settings", "speecht5_settings", "coqui_settings", "openai_tts_settings"]}
+        keys={["tts_backend", "elevenlabs_settings", "speecht5_settings", "coqui_settings", "openai_tts_settings", "piper_settings"]}
         menuClick={handleMenuClick} />;
 
     case 'stt':
       return <MenuPage
-        keys={["stt_backend", "whisper_openai_settings", "whispercpp_settings"]}
+        keys={["stt_backend", "stt_wake_word", "whisper_openai_settings", "whispercpp_settings"]}
         menuClick={handleMenuClick} />;
 
     case 'vision':
@@ -286,8 +300,13 @@ export const Settings = ({
     case 'character_model':
       return <CharacterModelPage
         viewer={viewer}
+        vrmHash={vrmHash}
         vrmUrl={vrmUrl}
+        vrmSaveType={vrmSaveType}
+        vrmList={vrmList}
+        setVrmHash={setVrmHash}
         setVrmUrl={setVrmUrl}
+        setVrmSaveType={setVrmSaveType}
         setSettingsUpdated={setSettingsUpdated}
         handleClickOpenVrmFile={handleClickOpenVrmFile}
         />
@@ -325,6 +344,8 @@ export const Settings = ({
       return <LlamaCppSettingsPage
         llamaCppUrl={llamaCppUrl}
         setLlamaCppUrl={setLlamaCppUrl}
+        llamaCppStopSequence={llamaCppStopSequence}
+        setLlamaCppStopSequence={setLlamaCppStopSequence}
         setSettingsUpdated={setSettingsUpdated}
         />
 
@@ -343,6 +364,8 @@ export const Settings = ({
         setKoboldAiUrl={setKoboldAiUrl}
         koboldAiUseExtra={koboldAiUseExtra}
         setKoboldAiUseExtra={setKoboldAiUseExtra}
+        koboldAiStopSequence={koboldAiStopSequence}
+        setKoboldAiStopSequence={setKoboldAiStopSequence}
         setSettingsUpdated={setSettingsUpdated}
         />
 
@@ -394,6 +417,13 @@ export const Settings = ({
         setSettingsUpdated={setSettingsUpdated}
         />
 
+    case 'piper_settings':
+      return <PiperSettingsPage
+        piperUrl={piperUrl}
+        setPiperUrl={setPiperUrl}
+        setSettingsUpdated={setSettingsUpdated}
+        />
+
     case'stt_backend':
       return <STTBackendPage
         sttBackend={sttBackend}
@@ -402,6 +432,17 @@ export const Settings = ({
         setPage={setPage}
         breadcrumbs={breadcrumbs}
         setBreadcrumbs={setBreadcrumbs}
+        />
+
+    case'stt_wake_word':
+      return <STTWakeWordSettingsPage
+        sttWakeWordEnabled={sttWakeWordEnabled}
+        sttWakeWord={sttWakeWord}
+        sttWakeWordIdleTime={sttWakeWordIdleTime}
+        setSTTWakeWordEnabled={setSTTWakeWordEnabled}
+        setSTTWakeWord={setSTTWakeWord}
+        setSTTWakeWordIdleTime={setSTTWakeWordIdleTime}
+        setSettingsUpdated={setSettingsUpdated}
         />
 
     case 'whisper_openai_settings':

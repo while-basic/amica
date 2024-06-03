@@ -13,10 +13,11 @@
     "test:ci": "jest --ci --reporters='./github-actions-reporter.js'",
     "act": "act -j test",
     "tauri": "tauri",
-    "generate:paths": "npx node scripts/generate_paths.js"
+    "generate:paths": "npx node scripts/generate_paths.js",
+    "splash": "cp ./public/splashscreen.html out/"
   },
   "dependencies": {
-    "@charcoal-ui/icons": "^2.6.0",
+    "@charcoal-ui/icons": "^2.10.0",
     "@charcoal-ui/theme": "^2.7.0",
     "@ducanh2912/next-pwa": "^9.7.2",
     "@headlessui/react": "^1.7.17",
@@ -28,6 +29,9 @@
     "@tailwindcss/line-clamp": "^0.4.4",
     "@xenova/transformers": "^2.7.0",
     "clsx": "^2.0.0",
+    "dexie": "^4.0.4",
+    "dexie-react-hooks": "^1.1.7",
+    "file-saver": "^2.0.5",
     "filepond": "^4.30.4",
     "filepond-plugin-file-validate-type": "^1.2.8",
     "filepond-plugin-image-preview": "^4.6.11",
@@ -46,11 +50,12 @@
   },
   "devDependencies": {
     "@gltf-transform/core": "^2.4.6",
-    "@tauri-apps/api": "^1.5.2",
+    "@tauri-apps/api": "^1.5.3",
     "@tauri-apps/cli": "^1.5.8",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
     "@types/dom-speech-recognition": "^0.0.1",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "18.15.10",
     "@types/react": "18.0.29",
     "@types/react-dom": "18.0.11",

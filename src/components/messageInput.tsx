@@ -2,17 +2,16 @@ import * as ort from "onnxruntime-web"
 ort.env.wasm.wasmPaths = '/_next/static/chunks/'
 
 import { useContext, useEffect, useRef, useState } from "react";
-import { clsx } from "clsx";
 import { useMicVAD } from "@ricky0123/vad-react"
 import { IconButton } from "./iconButton";
 import { useTranscriber } from "@/hooks/useTranscriber";
-import { cleanTranscript } from "@/utils/stringProcessing";
+import { cleanTranscript, cleanFromPunctuation, cleanFromWakeWord } from "@/utils/stringProcessing";
 import { AlertContext } from "@/features/alert/alertContext";
 import { ChatContext } from "@/features/chat/chatContext";
 import { openaiWhisper  } from "@/features/openaiWhisper/openaiWhisper";
 import { whispercpp  } from "@/features/whispercpp/whispercpp";
-import { config, updateConfig } from "@/utils/config";
-import wavefile, { WaveFile } from "wavefile";
+import { config } from "@/utils/config";
+import { WaveFile } from "wavefile";
 
 export default function MessageInput({
   userMessage,
@@ -115,14 +114,24 @@ export default function MessageInput({
   }
 
   function handleTranscriptionResult(preprocessed: string) {
-    const text = cleanTranscript(preprocessed);
+    const cleanText = cleanTranscript(preprocessed);
+    const wakeWordEnabled = config("wake_word_enabled") === 'true';
+    const textStartsWithWakeWord = wakeWordEnabled && cleanFromPunctuation(cleanText).startsWith(cleanFromPunctuation(config("wake_word")));
+    const text = wakeWordEnabled && textStartsWithWakeWord ? cleanFromWakeWord(cleanText, config("wake_word")) : cleanText;
+
+    if (textStartsWithWakeWord) {
+      bot.updateAwake();
+    }
 
     if (text === "") {
       return;
     }
 
+
     if (config("autosend_from_mic") === 'true') {
-      bot.receiveMessageFromUser(text);
+        if (!wakeWordEnabled || bot.isAwake()) {
+        bot.receiveMessageFromUser(text);
+      }
     } else {
       setUserMessage(text);
     }

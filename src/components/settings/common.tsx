@@ -18,7 +18,8 @@ import {
   PencilIcon,
   EyeDropperIcon,
   EyeIcon,
-  SwatchIcon
+  SwatchIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
 
 export function basicPage(
@@ -90,6 +91,14 @@ export function thumbPrefix(path: string) {
   return a.join("/");
 }
 
+export function hashCode(str: string): string {
+  var hash = 0, i = 0, len = str.length;
+  while ( i < len ) {
+      hash  = ((hash << 5) - hash + str.charCodeAt(i++)) << 0;
+  }
+  return hash.toString();
+}
+
 export type Link = {
   key: string;
   label: string;
@@ -149,8 +158,10 @@ export function getIconFromPage(page: string): JSX.Element {
     case 'speecht5_settings':   return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
     case 'coqui_settings':      return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
     case 'openai_tts_settings': return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
+    case 'piper_settings': return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
 
     case 'stt_backend':         return <PencilSquareIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
+    case 'stt_wake_word':  return <MoonIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
     case 'whisper_openai_settings':  return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
     case 'whispercpp_settings': return <AdjustmentsHorizontalIcon className="h-5 w-5 flex-none text-gray-800" aria-hidden="true" />;
 
@@ -193,6 +204,7 @@ function getLabelFromPage(page: string): string {
     case 'speecht5_settings':   return t('SpeechT5');
     case 'coqui_settings':      return t('Coqui');
     case 'openai_tts_settings': return t('OpenAI');
+    case 'piper_settings':      return t('Piper');
 
     case 'vision_backend':           return t('Vision Backend');
     case 'vision_llamacpp_settings': return t('LLama.cpp');
@@ -200,6 +212,7 @@ function getLabelFromPage(page: string): string {
     case 'vision_system_prompt':     return t('System Prompt');
 
     case 'stt_backend':             return t('STT Backend');
+    case 'stt_wake_word':           return t("Wake word");
     case 'whisper_openai_settings': return t("Whisper (OpenAI)");
     case 'whispercpp_settings':     return t("Whisper.cpp");
   }

@@ -1,17 +1,19 @@
 import { useContext, useCallback, useEffect, useState } from "react";
 import { ViewerContext } from "@/features/vrmViewer/viewerContext";
 import { buildUrl } from "@/utils/buildUrl";
-import { config } from "@/utils/config";
 
 export default function VrmDemo({
   vrmUrl,
+  onScreenShot,
   onLoaded,
   onError,
 }: {
   vrmUrl: string,
+  onScreenShot?: (blob: Blob | null) => void;
   onLoaded?: () => void,
   onError?: () => void,
 }) {
+  
   const { viewer } = useContext(ViewerContext);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState(false);
@@ -39,6 +41,8 @@ export default function VrmDemo({
           setLoadingError(false);
           onLoaded && onLoaded();
         })
+        .then(() => {if (onScreenShot) return new Promise(resolve => setTimeout(resolve, 300));})
+        .then(() => {if (onScreenShot) viewer.getScreenshotBlob(onScreenShot);})
         .catch((e) => {
           console.error("vrm loading error", e);
           setLoadingError(true);
